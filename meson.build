@@ -1,0 +1,288 @@
+project('libnice', 'c',
+  version: '0.1.14.1',
+  meson_version : '>= 0.40.0',
+  default_options : ['warning_level=1', 'buildtype=debugoptimized'])
+
+nice_version = meson.project_version()
+version_arr = nice_version.split('.')
+version_major = version_arr[0]
+version_minor = version_arr[1]
+version_micro = version_arr[2]
+if version_arr.length() == 4
+  version_nano = version_arr[3]
+else
+  version_nano = 0
+endif
+
+# maintain compatibility with the previous libtool versioning
+soversion = 10
+libversion = '10.6.2'
+
+glib_req = '2.44'
+gnutls_req = '2.12.0'
+gupnp_igd_req = '0.2.4'
+gst_req = '1.0'
+
+cc = meson.get_compiler('c')
+
+syslibs = []
+
+if host_machine.system() == 'windows'
+  add_project_arguments('-DWINVER=0x0501', language: 'c') # _WIN32_WINNT_WINXP
+  syslibs += [cc.find_library('iphlpapi')]
+  syslibs += [cc.find_library('ws2_32')]
+elif host_machine.system() == 'sunos'
+  add_project_arguments('-D_XOPEN_SOURCE=600', language: 'c')
+  add_project_arguments('-D__EXTENSIONS__=1', language: 'c')
+  syslibs += [cc.find_library('nsl')]
+  if not cc.has_function('inet_pton')
+    libnsl = cc.find_library('nsl', required: false)
+    if cc.has_function('inet_pton', dependencies: libnsl)
+      syslibs += [libnsl]
+    endif
+  endif
+  if not cc.has_function('socket')
+    libsocket = cc.find_library('socket', required: false)
+    libinet = cc.find_library('inet', required: false)
+    if cc.has_function('socket', dependencies: libsocket)
+      syslibs += [libsocket]
+    elif cc.has_function('socket', dependencies: libinet)
+      syslibs += [libinet]
+    else
+      error('Could not find right library for socket() on Solaris')
+    endif
+  endif
+endif
+
+if not cc.has_function('clock_gettime')
+  librt = cc.find_library('rt', required: false)
+  if cc.has_function('clock_gettime', dependencies: librt)
+    syslibs += [librt]
+  else
+    error('Could not find right library for clock_gettime()')
+  endif
+endif
+
+add_project_arguments('-D_GNU_SOURCE',
+  '-DHAVE_CONFIG_H',
+  '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_' + glib_req.underscorify(),
+  '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_' + glib_req.underscorify(),
+  language: 'c')
+
+cdata = configuration_data()
+
+cdata.set_quoted('PACKAGE_STRING', meson.project_name())
+cdata.set_quoted('PACKAGE_NAME', meson.project_name())
+cdata.set_quoted('PACKAGE', meson.project_name())
+cdata.set_quoted('VERSION', meson.project_version())
+
+cdata.set('NICEAPI_EXPORT', true,
+  description: 'Public library function implementation')
+
+cfga='''
+# Checks for compiler features
+
+AH_VERBATIM([_FORTIFY_SOURCE],
+[/* Define to `2' to get GNU/libc warnings. */
+/* Only define if -O1 or more is enabled */
+#if defined __OPTIMIZE__ && __OPTIMIZE__ > 0
+# define _FORTIFY_SOURCE 2
+#endif])
+'''
+
+# headers
+foreach h : ['arpa/inet.h', 'net/in.h', 'netdb.h', 'ifaddrs.h']
+  if cc.has_header(h)
+    define = 'HAVE_' + h.underscorify().to_upper()
+    cdata.set(define, 1)
+  endif
+endforeach
+
+# functions
+foreach f : ['poll', 'getifaddrs']
+  if cc.has_function(f)
+    define = 'HAVE_' + f.underscorify().to_upper()
+    cdata.set(define, 1)
+  endif
+endforeach
+
+# FIXME: public win32_common.h header seems to use HAVE_* defines from config.h
+cdata.set('HAVE_SIZE_T', cc.has_type('size_t'))
+cdata.set('HAVE_SSIZE_T', cc.has_type('ssize_t'))
+
+if cc.has_argument('-fno-strict-aliasing')
+  add_project_arguments('-fno-strict-aliasing', language: 'c')
+endif
+
+# Extra compiler warnings (FIXME: not sure this makes sense to keep like this)
+warning_level = get_option('warning_level').to_int()
+werror = get_option('werror')
+
+warnings = []
+
+message('warning level: @0@'.format(warning_level))
+message('werror enabled: @0@'.format(werror))
+
+if warning_level >= 2
+  warnings += [
+    '-Wextra',
+    '-Wundef',
+    '-Wnested-externs',
+    '-Wwrite-strings',
+    '-Wpointer-arith',
+    '-Wmissing-declarations',
+    '-Wmissing-prototypes',
+    '-Wstrict-prototypes',
+    '-Wredundant-decls',
+    '-Wno-unused-parameter',
+    '-Wno-missing-field-initializers',
+    '-Wdeclaration-after-statement',
+    '-Wformat=2',
+    '-Wold-style-definition',
+    '-Wcast-align',
+    '-Wformat-nonliteral',
+    '-Wformat-security',
+  ]
+endif
+if warning_level >= 3
+  warnings += [
+    '-Wsign-compare',
+    '-Wstrict-aliasing',
+    '-Wshadow',
+    '-Winline',
+    '-Wpacked',
+    '-Wmissing-format-attribute',
+    '-Winit-self',
+    '-Wredundant-decls',
+    '-Wmissing-include-dirs',
+    '-Wunused-but-set-variable',
+    '-Warray-bounds',
+  ]
+  warnings += [
+    '-Wswitch-default',
+    '-Waggregate-return',
+  ]
+endif
+if werror
+  warnings += [
+    '-Wno-suggest-attribute=format',
+  ]
+endif
+
+foreach w : warnings
+  if cc.has_argument(w)
+    add_project_arguments(w, language: 'c')
+  endif
+endforeach
+
+# Dependencies
+gnutls_dep = dependency('gnutls', version: '>= ' + gnutls_req)
+glib_dep = dependency('gio-2.0', version: '>= ' + glib_req)
+gthread_dep = dependency('gthread-2.0')
+
+# GStreamer
+enable_gst = get_option('enable-gstreamer')
+if enable_gst != 'no'
+  want_gst = enable_gst == 'yes'
+  gst_dep = dependency('gstreamer-base-1.0', version: '>= ' + gst_req, required: want_gst)
+  using_gst = gst_dep.found()
+else
+  gst_dep = []
+  using_gst = false
+endif
+cdata.set('HAVE_GSTREAMER', using_gst, description: 'Have GStreamer')
+
+# GUPnP IGD
+enable_gupnp = get_option('enable-gupnp')
+if enable_gupnp != 'no'
+  want_gupnp = enable_gupnp == 'yes'
+  gupnp_igd_dep = dependency('gupnp-igd-1.0', version: '>= ' + gupnp_igd_req, required: want_gupnp)
+  using_gupnp = gupnp_igd_dep.found()
+else
+  gupnp_igd_dep = []
+  using_gupnp = false
+endif
+cdata.set('HAVE_GUPNP', using_gupnp, description: 'Have the GUPnP IGD library')
+
+libm = cc.find_library('m', required: false)
+
+nice_incs = include_directories('.', 'agent', 'random', 'socket', 'stun')
+
+nice_deps = [glib_dep, gthread_dep, gnutls_dep, gupnp_igd_dep] + syslibs
+
+abcd='''
+dnl Test coverage
+AC_ARG_ENABLE([coverage],
+	[AS_HELP_STRING([--enable-coverage],
+		[build for test coverage (default disabled)])],,
+	[enable_coverage="no"])
+AS_IF([test "${enable_coverage}" != "no"], [
+	CFLAGS="${CFLAGS} -g -O0 -fprofile-arcs -ftest-coverage"
+	LDFLAGS="-lgcov"
+	CCACHE_DISABLE=1
+])
+
+dnl build static plugins or not
+AC_MSG_CHECKING([whether to build static plugins or not])
+AC_ARG_ENABLE(
+  static-plugins,
+  AC_HELP_STRING(
+    [--enable-static-plugins],
+    [build static plugins @<:@default=no@:>@]),
+  [AS_CASE(
+    [$enableval], [no], [], [yes], [],
+    [AC_MSG_ERROR([bad value "$enableval" for --enable-static-plugins])])],
+  [enable_static_plugins=no])
+AC_MSG_RESULT([$enable_static_plugins])
+if test "x$enable_static_plugins" = xyes; then
+  AC_DEFINE(GST_PLUGIN_BUILD_STATIC, 1,
+    [Define if static plugins should be built])
+fi
+AM_CONDITIONAL(GST_PLUGIN_BUILD_STATIC, test "x$enable_static_plugins" = "xyes")
+
+# check for gtk-doc
+m4_ifdef([GTK_DOC_CHECK], [
+GTK_DOC_CHECK([1.10],[--flavour no-tmpl])
+],[
+AM_CONDITIONAL([ENABLE_GTK_DOC], false)
+])
+
+# GObject introspection
+GOBJECT_INTROSPECTION_CHECK([1.30.0])
+
+dnl Ignore a specific network interface name prefix from the connection check
+AC_MSG_CHECKING([whether to ignore a specific network interface name prefix])
+AC_ARG_WITH([ignored-network-interface-prefix],
+  [AS_HELP_STRING([--with-ignored-network-interface-prefix=string],
+    [Ignore network interfaces whose name starts with "string" from the ICE connection
+     check algorithm. For example, interfaces "virbr" in the case of the virtual bridge
+     handled by libvirtd, do not help in finding connectivity.])],
+    [interface_prefix="$withval"])
+AS_IF([test -n "$interface_prefix"],
+  [AC_DEFINE_UNQUOTED([IGNORED_IFACE_PREFIX],["$interface_prefix"],
+    [Ignore this network interface prefix from the connection check])
+   AC_MSG_RESULT([yes, $interface_prefix])],
+  [AC_MSG_RESULT([no])])
+
+AC_CONFIG_MACRO_DIR(m4)
+
+AC_OUTPUT
+'''
+
+subdir('agent')
+subdir('stun')
+subdir('socket')
+subdir('random')
+subdir('nice')
+
+if using_gst
+  subdir('gst')
+endif
+
+#subdir('docs')
+#	docs/reference/Makefile
+#	docs/reference/libnice/Makefile
+subdir('tests')
+#subdir('examples')
+
+configure_file(output : 'config.h', configuration : cdata)
