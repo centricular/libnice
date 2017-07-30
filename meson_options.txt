@@ -1,0 +1,4 @@
+option('enable-gupnp', type : 'combo', choices : ['yes', 'no', 'auto'], value : 'auto',
+  description: 'Enable or disable GUPnP IGD support')
+option('enable-gstreamer', type : 'combo', choices : ['yes', 'no', 'auto'], value : 'auto',
+  description: 'Enable or disable build of GStreamer plugins')
