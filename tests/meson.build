@@ -16,6 +16,7 @@ nice_tests = [
   'test-socket-is-based-on',
   'test-priority',
   'test-fullmode',
+  'test-different-number-streams',
   'test-restart',
   'test-fallback',
   'test-thread',
@@ -28,6 +29,9 @@ nice_tests = [
   'test-drop-invalid',
   'test-nomination',
 ]
+
+tenv = environment()
+tenv.set('BUILT_WITH_MESON', '1')
 
 foreach tname : nice_tests
   if tname.startswith('test-io-stream') or tname.startswith('test-send-recv')
@@ -42,8 +46,8 @@ foreach tname : nice_tests
     dependencies: [nice_deps, libm],
     link_with: libnice,
     install: false)
-
-  test(tname, exe)
+  set_variable(tname.underscorify(), exe)
+  test(tname, exe, env: tenv)
 endforeach
 
 if using_gst
@@ -56,25 +60,25 @@ if using_gst
       dependencies: [nice_deps, gst_check, libm],
       link_with: libnice,
       install: false)
-    test('test-gstreamer', exe)
+    test('test-gstreamer', exe, env: tenv)
   endif
 endif
 
-am='''
-TESTS_ENVIRONMENT=\
-	GST_PLUGIN_PATH=${GST_PLUGIN_PATH}:$(top_builddir)/gst
+if find_program('sh', required : false).found()
+  dd = find_program('dd', required : false)
+  diff = find_program('diff', required : false)
+  if dd.found() and diff.found()
+    test('test-pseudotcp-random', find_program('test-pseudotcp-random.sh'),
+      args: test_pseudotcp,
+      env: tenv)
+  endif
 
-AM_TESTS_ENVIRONMENT = \
-	G_MESSAGES_DEBUG=all \
-	NICE_DEBUG=all;
+  test('test-fullmode-with-stun', files('check-test-fullmode-with-stun.sh'),
+    args: [stund_exe, test_fullmode],
+    env: tenv)
+endif
 
-dist_check_SCRIPTS = \
-	check-test-fullmode-with-stun.sh \
-  'test-pseudotcp-random.sh
-
-TESTS = $(check_PROGRAMS) $(dist_check_SCRIPTS)
-
-all-local:
-	chmod a+x $(srcdir)/check-test-fullmode-with-stun.sh
-	chmod a+x $(srcdir)/test-pseudotcp-random.sh
-'''
+debugenv = environment()
+debugenv.set('G_MESSAGES_DEBUG', 'all')
+debugenv.set('NICE_DEBUG', 'all')
+add_test_setup('debug', env: debugenv)

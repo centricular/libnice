@@ -1,19 +1,17 @@
-libnice = library('nice', 'nice.h',
+libnice = both_libraries('nice',
   link_whole: [libagent, libsocket, libstun, librandom],
   version : libversion,
   soversion : soversion,
   install: true)
 
+install_headers('nice.h', subdir: 'nice')
+nice_include = include_directories('.')
+
+libnice_dep = declare_dependency(link_with : libnice,
+  include_directories : [agent_include, nice_include])
+
+# TODO: symbol script
 am='''
-libnice_la_DEPENDENCIES = \
-	$(top_builddir)/agent/libagent.la \
-	libnice.sym
-
-libnice_la_LIBADD = \
-	$(GLIB_LIBS) \
-	$(GUPNP_LIBS) \
-	$(top_builddir)/agent/libagent.la
-
 libnice_la_LDFLAGS = \
 	-export-symbols $(srcdir)/libnice.sym \
 	$(LIBNICE_LT_LDFLAGS)

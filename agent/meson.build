@@ -1,110 +1,45 @@
-agent_headers = [ # FIXME: unused? install?
+agent_headers = [
   'address.h',
-  'debug.h',
-  'candidate.h',
-  'component.h',
   'agent.h',
-  'agent-priv.h',
-  'stream.h',
-  'conncheck.h',
-  'discovery.h',
+  'candidate.h',
+  'debug.h',
   'interfaces.h',
   'pseudotcp.h',
-  'iostream.h',
-  'inputstream.h',
-  'outputstream.h',
 ]
+install_headers(agent_headers, subdir : 'nice')
+agent_include = include_directories('.')
 
 agent_sources = [
   'address.c',
-  'debug.c',
+  'agent.c',
   'candidate.c',
   'component.c',
-  'agent.c',
-  'stream.c',
   'conncheck.c',
+  'debug.c',
   'discovery.c',
-  'interfaces.c',
-  'pseudotcp.c',
-  'iostream.c',
   'inputstream.c',
+  'interfaces.c',
+  'iostream.c',
   'outputstream.c',
+  'pseudotcp.c',
+  'stream.c',
 ]
 
 gnome = import('gnome')
 
-# TODO: use mkenums_simple() once it lands in Meson
-agent_enum_types_h = gnome.mkenums('agent-enum-types.h',
-  sources: 'agent.h',
-  fhead: '''
-#ifndef __AGENT_ENUM_TYPES_H__
-#define __AGENT_ENUM_TYPES_H__ 1
-
-#include <glib-object.h>
-
-G_BEGIN_DECLS
-''',
-  fprod: '''
-/* enumerations from "@basename@" */
-''',
-  vhead: '''
-GType @enum_name@_get_type (void) G_GNUC_CONST;
-#define NICE_TYPE_@ENUMSHORT@ (@enum_name@_get_type())
-''',
-  ftail: '''
-G_END_DECLS
-
-#endif /* !AGENT_ENUM_TYPES_H */''',
-  install_header: false)
-
-agent_enum_types_c = gnome.mkenums('agent-enum-types.c',
-  sources: 'agent.h',
-  depends: agent_enum_types_h,
-  fhead: '''
-#include <config.h>
-#include <glib-object.h>
-#include "agent.h"
-#include "agent-enum-types.h"
-''',
-  fprod: '''
-/* enumerations from "@basename@" */
-''',
-  vhead: '''
-GType
-@enum_name@_get_type (void)
-{
-  static GType type = 0;
-  if (!type) {
-    static const G@Type@Value values[] = {
-''',
-  vprod: '''      { @VALUENAME@, "@VALUENAME@", "@valuenick@" },''',
-  vtail: '''      { 0, NULL, NULL }
-    };
-    type = g_@type@_register_static ("@EnumName@", values);
-  }
-  return type;
-}
-
-''')
+agent_enum_types = gnome.mkenums_simple('agent-enum-types', sources : agent_headers)
+agent_enum_types_c = agent_enum_types[0]
+agent_enum_types_h = agent_enum_types[1]
 
 libagent = static_library('agent',
-  agent_enum_types_c, agent_enum_types_h, agent_sources,
+  agent_enum_types, agent_sources,
   c_args: ['-DG_LOG_DOMAIN="libnice"'],
   include_directories: nice_incs,
   dependencies: nice_deps,
   install: false)
 
-# FIXME: introspection
-makfile='''
-pkginclude_HEADERS = \
-	agent.h \
-	candidate.h \
-	debug.h \
-	address.h \
-	interfaces.h \
-	pseudotcp.h \
-	$(NULL)
-
+# TODO: introspection
+todo='''
 # GObject introspection
 # We need --accept-unprefixed because of PseudoTcp and TurnServer.
 -include $(INTROSPECTION_MAKEFILE)

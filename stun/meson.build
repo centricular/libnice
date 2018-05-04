@@ -32,5 +32,5 @@ libstun = static_library('stun', stun_sources,
   dependencies: nice_deps,
   install: false)
 
-subdir('tests')
 subdir('tools')
+subdir('tests')
