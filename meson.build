@@ -1,6 +1,6 @@
 project('libnice', 'c',
   version: '0.1.14.1',
-  meson_version : '>= 0.40.0',
+  meson_version : '>= 0.46.0',
   default_options : ['warning_level=1', 'buildtype=debugoptimized'])
 
 nice_version = meson.project_version()
@@ -18,6 +18,7 @@ endif
 soversion = 10
 libversion = '10.6.2'
 
+# NOTE: Keep this in the form of x.yy for the GLIB_VERSION_MIN_REQUIRED define
 glib_req = '2.44'
 gnutls_req = '2.12.0'
 gupnp_igd_req = '0.2.4'
@@ -34,10 +35,11 @@ if host_machine.system() == 'windows'
 elif host_machine.system() == 'sunos'
   add_project_arguments('-D_XOPEN_SOURCE=600', language: 'c')
   add_project_arguments('-D__EXTENSIONS__=1', language: 'c')
+  # inet_pton() is only used by the tests
   syslibs += [cc.find_library('nsl')]
   if not cc.has_function('inet_pton')
     libnsl = cc.find_library('nsl', required: false)
-    if cc.has_function('inet_pton', dependencies: libnsl)
+    if libnsl.found() and cc.has_function('inet_pton', dependencies: libnsl)
       syslibs += [libnsl]
     endif
   endif
@@ -79,6 +81,7 @@ cdata.set_quoted('VERSION', meson.project_version())
 cdata.set('NICEAPI_EXPORT', true,
   description: 'Public library function implementation')
 
+# TODO:
 cfga='''
 # Checks for compiler features
 
@@ -105,10 +108,6 @@ foreach f : ['poll', 'getifaddrs']
     cdata.set(define, 1)
   endif
 endforeach
-
-# FIXME: public win32_common.h header seems to use HAVE_* defines from config.h
-cdata.set('HAVE_SIZE_T', cc.has_type('size_t'))
-cdata.set('HAVE_SSIZE_T', cc.has_type('ssize_t'))
 
 if cc.has_argument('-fno-strict-aliasing')
   add_project_arguments('-fno-strict-aliasing', language: 'c')
@@ -166,6 +165,7 @@ endif
 if werror
   warnings += [
     '-Wno-suggest-attribute=format',
+    '-Wno-cast-function-type',
   ]
 endif
 
@@ -181,7 +181,7 @@ glib_dep = dependency('gio-2.0', version: '>= ' + glib_req)
 gthread_dep = dependency('gthread-2.0')
 
 # GStreamer
-enable_gst = get_option('enable-gstreamer')
+enable_gst = get_option('gstreamer')
 if enable_gst != 'no'
   want_gst = enable_gst == 'yes'
   gst_dep = dependency('gstreamer-base-1.0', version: '>= ' + gst_req, required: want_gst)
@@ -193,7 +193,7 @@ endif
 cdata.set('HAVE_GSTREAMER', using_gst, description: 'Have GStreamer')
 
 # GUPnP IGD
-enable_gupnp = get_option('enable-gupnp')
+enable_gupnp = get_option('gupnp')
 if enable_gupnp != 'no'
   want_gupnp = enable_gupnp == 'yes'
   gupnp_igd_dep = dependency('gupnp-igd-1.0', version: '>= ' + gupnp_igd_req, required: want_gupnp)
@@ -210,7 +210,8 @@ nice_incs = include_directories('.', 'agent', 'random', 'socket', 'stun')
 
 nice_deps = [glib_dep, gthread_dep, gnutls_dep, gupnp_igd_dep] + syslibs
 
-abcd='''
+# TODO: configure.ac bits that are yet to be ported
+todo='''
 dnl Test coverage
 AC_ARG_ENABLE([coverage],
 	[AS_HELP_STRING([--enable-coverage],
@@ -222,24 +223,6 @@ AS_IF([test "${enable_coverage}" != "no"], [
 	CCACHE_DISABLE=1
 ])
 
-dnl build static plugins or not
-AC_MSG_CHECKING([whether to build static plugins or not])
-AC_ARG_ENABLE(
-  static-plugins,
-  AC_HELP_STRING(
-    [--enable-static-plugins],
-    [build static plugins @<:@default=no@:>@]),
-  [AS_CASE(
-    [$enableval], [no], [], [yes], [],
-    [AC_MSG_ERROR([bad value "$enableval" for --enable-static-plugins])])],
-  [enable_static_plugins=no])
-AC_MSG_RESULT([$enable_static_plugins])
-if test "x$enable_static_plugins" = xyes; then
-  AC_DEFINE(GST_PLUGIN_BUILD_STATIC, 1,
-    [Define if static plugins should be built])
-fi
-AM_CONDITIONAL(GST_PLUGIN_BUILD_STATIC, test "x$enable_static_plugins" = "xyes")
-
 # check for gtk-doc
 m4_ifdef([GTK_DOC_CHECK], [
 GTK_DOC_CHECK([1.10],[--flavour no-tmpl])
@@ -249,25 +232,11 @@ AM_CONDITIONAL([ENABLE_GTK_DOC], false)
 
 # GObject introspection
 GOBJECT_INTROSPECTION_CHECK([1.30.0])
-
-dnl Ignore a specific network interface name prefix from the connection check
-AC_MSG_CHECKING([whether to ignore a specific network interface name prefix])
-AC_ARG_WITH([ignored-network-interface-prefix],
-  [AS_HELP_STRING([--with-ignored-network-interface-prefix=string],
-    [Ignore network interfaces whose name starts with "string" from the ICE connection
-     check algorithm. For example, interfaces "virbr" in the case of the virtual bridge
-     handled by libvirtd, do not help in finding connectivity.])],
-    [interface_prefix="$withval"])
-AS_IF([test -n "$interface_prefix"],
-  [AC_DEFINE_UNQUOTED([IGNORED_IFACE_PREFIX],["$interface_prefix"],
-    [Ignore this network interface prefix from the connection check])
-   AC_MSG_RESULT([yes, $interface_prefix])],
-  [AC_MSG_RESULT([no])])
-
-AC_CONFIG_MACRO_DIR(m4)
-
-AC_OUTPUT
 '''
+ignored_iface_prefix = get_option('ignored-network-interface-prefix')
+if ignored_iface_prefix != ''
+  cdata.set_quoted('IGNORED_IFACE_PREFIX', ignored_iface_prefix)
+endif
 
 subdir('agent')
 subdir('stun')
