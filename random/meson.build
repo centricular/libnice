@@ -5,9 +5,11 @@ librandom = static_library('nice-random',
   dependencies: [glib_dep, gthread_dep],
   install: false)
 
-test_exe = executable('nice-random-test', 'test.c',
-  include_directories: nice_incs,
-  dependencies: [glib_dep, gthread_dep],
-  link_with: librandom)
+if get_option('tests')
+  test_exe = executable('nice-random-test', 'test.c',
+    include_directories: nice_incs,
+    dependencies: [glib_dep, gthread_dep],
+    link_with: librandom)
 
-test('nice-random', test_exe)
+  test('nice-random', test_exe)
+endif

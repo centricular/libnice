@@ -33,4 +33,7 @@ libstun = static_library('stun', stun_sources,
   install: false)
 
 subdir('tools')
-subdir('tests')
+
+if get_option('tests')
+  subdir('tests')
+endif
