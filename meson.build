@@ -251,7 +251,9 @@ endif
 #subdir('docs')
 #	docs/reference/Makefile
 #	docs/reference/libnice/Makefile
-subdir('tests')
+if get_option('tests')
+  subdir('tests')
+endif
 #subdir('examples')
 
 configure_file(output : 'config.h', configuration : cdata)
