@@ -24,6 +24,8 @@ gnutls_req = '2.12.0'
 gupnp_igd_req = '0.2.4'
 gst_req = '1.0'
 
+nice_datadir = join_paths(get_option('prefix'), get_option('datadir'))
+
 cc = meson.get_compiler('c')
 
 syslibs = []
@@ -212,24 +214,6 @@ nice_deps = [glib_dep, gthread_dep, gnutls_dep, gupnp_igd_dep] + syslibs
 
 # TODO: configure.ac bits that are yet to be ported
 todo='''
-dnl Test coverage
-AC_ARG_ENABLE([coverage],
-	[AS_HELP_STRING([--enable-coverage],
-		[build for test coverage (default disabled)])],,
-	[enable_coverage="no"])
-AS_IF([test "${enable_coverage}" != "no"], [
-	CFLAGS="${CFLAGS} -g -O0 -fprofile-arcs -ftest-coverage"
-	LDFLAGS="-lgcov"
-	CCACHE_DISABLE=1
-])
-
-# check for gtk-doc
-m4_ifdef([GTK_DOC_CHECK], [
-GTK_DOC_CHECK([1.10],[--flavour no-tmpl])
-],[
-AM_CONDITIONAL([ENABLE_GTK_DOC], false)
-])
-
 # GObject introspection
 GOBJECT_INTROSPECTION_CHECK([1.30.0])
 '''
@@ -248,9 +232,10 @@ if using_gst
   subdir('gst')
 endif
 
-#subdir('docs')
-#	docs/reference/Makefile
-#	docs/reference/libnice/Makefile
+if get_option('gtk_doc')
+  subdir('docs/reference/libnice')
+endif
+
 if get_option('tests')
   subdir('tests')
 endif

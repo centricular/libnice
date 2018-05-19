@@ -6,3 +6,5 @@ option('ignored-network-interface-prefix', type: 'string', value: '',
   description: 'Ignore network interfaces whose name starts with this string in the ICE connection check algorithm. For example, "virbr" to ignore virtual bridge interfaces added by virtd, which do not help in finding connectivity.')
 option('tests', type: 'boolean', value: true,
   description: 'Enable or disable unit tests')
+option('gtk_doc', type: 'boolean', value: false,
+  description: 'Use gtk-doc to build documentation')
