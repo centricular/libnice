@@ -51,7 +51,8 @@ foreach tname : nice_tests
 endforeach
 
 if using_gst
-  gst_check = dependency('gstreamer-check-1.0', required: false)
+  gst_check = dependency('gstreamer-check-1.0', required: false,
+                         fallback : ['gstreamer', 'gst_check_dep'])
   if gst_check.found()
     exe = executable('nice-test-gstreamer',
       'test-gstreamer.c', extra_src,

@@ -186,7 +186,8 @@ gthread_dep = dependency('gthread-2.0')
 enable_gst = get_option('gstreamer')
 if enable_gst != 'no'
   want_gst = enable_gst == 'yes'
-  gst_dep = dependency('gstreamer-base-1.0', version: '>= ' + gst_req, required: want_gst)
+  gst_dep = dependency('gstreamer-base-1.0', version: '>= ' + gst_req, required: want_gst,
+                       fallback : ['gstreamer', 'gst_base_dep'])
   using_gst = gst_dep.found()
 else
   gst_dep = []
