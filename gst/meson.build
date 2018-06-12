@@ -6,7 +6,7 @@ gst_nice_sources = [
 
 gst_nice_args = ['-DGST_USE_UNSTABLE_API']
 
-libgstnice = both_libraries('gstnice',
+libgstnice = library('gstnice',
   gst_nice_sources,
   c_args : gst_nice_args,
   include_directories: nice_incs,
