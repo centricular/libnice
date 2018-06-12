@@ -1,4 +1,4 @@
-libnice = both_libraries('nice',
+libnice = library('nice',
   link_whole: [libagent, libsocket, libstun, librandom],
   version : libversion,
   soversion : soversion,
