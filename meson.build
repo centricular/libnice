@@ -18,11 +18,10 @@ endif
 soversion = 10
 libversion = '10.6.2'
 
-# NOTE: Keep this in the form of x.yy for the GLIB_VERSION_MIN_REQUIRED define
-glib_req = '2.44'
-gnutls_req = '2.12.0'
-gupnp_igd_req = '0.2.4'
-gst_req = '1.0'
+glib_req = '>= 2.44'
+gnutls_req = '>= 2.12.0'
+gupnp_igd_req = '>= 0.2.4'
+gst_req = '>= 1.0.0'
 
 nice_datadir = join_paths(get_option('prefix'), get_option('datadir'))
 
@@ -67,10 +66,11 @@ if not cc.has_function('clock_gettime')
   endif
 endif
 
+glib_req_minmax_str = glib_req.split().get(1).underscorify()
 add_project_arguments('-D_GNU_SOURCE',
   '-DHAVE_CONFIG_H',
-  '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_' + glib_req.underscorify(),
-  '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_' + glib_req.underscorify(),
+  '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_' + glib_req_minmax_str,
+  '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_' + glib_req_minmax_str,
   language: 'c')
 
 cdata = configuration_data()
@@ -178,19 +178,19 @@ foreach w : warnings
 endforeach
 
 # Dependencies
-gnutls_dep = dependency('gnutls', version: '>= ' + gnutls_req)
-glib_dep = dependency('gio-2.0', version: '>= ' + glib_req)
+gnutls_dep = dependency('gnutls', version: gnutls_req)
+glib_dep = dependency('gio-2.0', version: glib_req)
 gthread_dep = dependency('gthread-2.0')
 
 # GStreamer
-gst_dep = dependency('gstreamer-base-1.0', version: '>= ' + gst_req,
+gst_dep = dependency('gstreamer-base-1.0', version: gst_req,
   required: get_option('gstreamer'),
   fallback : ['gstreamer', 'gst_base_dep'])
 
 cdata.set('HAVE_GSTREAMER', gst_dep.found(), description: 'Build GStreamer plugin')
 
 # GUPnP IGD
-gupnp_igd_dep = dependency('gupnp-igd-1.0', version: '>= ' + gupnp_igd_req, required: get_option('gupnp'))
+gupnp_igd_dep = dependency('gupnp-igd-1.0', version: gupnp_igd_req, required: get_option('gupnp'))
 cdata.set('HAVE_GUPNP', gupnp_igd_dep.found(), description: 'Use the GUPnP IGD library')
 
 libm = cc.find_library('m', required: false)
