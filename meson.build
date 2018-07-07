@@ -1,6 +1,6 @@
 project('libnice', 'c',
   version: '0.1.14.1',
-  meson_version : '>= 0.46.0',
+  meson_version : '>= 0.47.0',
   default_options : ['warning_level=1', 'buildtype=debugoptimized'])
 
 nice_version = meson.project_version()
@@ -183,29 +183,15 @@ glib_dep = dependency('gio-2.0', version: '>= ' + glib_req)
 gthread_dep = dependency('gthread-2.0')
 
 # GStreamer
-enable_gst = get_option('gstreamer')
-if enable_gst != 'no'
-  want_gst = enable_gst == 'yes'
-  gst_dep = dependency('gstreamer-base-1.0', version: '>= ' + gst_req, required: want_gst,
-                       fallback : ['gstreamer', 'gst_base_dep'])
-  using_gst = gst_dep.found()
-else
-  gst_dep = []
-  using_gst = false
-endif
-cdata.set('HAVE_GSTREAMER', using_gst, description: 'Have GStreamer')
+gst_dep = dependency('gstreamer-base-1.0', version: '>= ' + gst_req,
+  required: get_option('gstreamer'),
+  fallback : ['gstreamer', 'gst_base_dep'])
+
+cdata.set('HAVE_GSTREAMER', gst_dep.found(), description: 'Build GStreamer plugin')
 
 # GUPnP IGD
-enable_gupnp = get_option('gupnp')
-if enable_gupnp != 'no'
-  want_gupnp = enable_gupnp == 'yes'
-  gupnp_igd_dep = dependency('gupnp-igd-1.0', version: '>= ' + gupnp_igd_req, required: want_gupnp)
-  using_gupnp = gupnp_igd_dep.found()
-else
-  gupnp_igd_dep = []
-  using_gupnp = false
-endif
-cdata.set('HAVE_GUPNP', using_gupnp, description: 'Have the GUPnP IGD library')
+gupnp_igd_dep = dependency('gupnp-igd-1.0', version: '>= ' + gupnp_igd_req, required: get_option('gupnp'))
+cdata.set('HAVE_GUPNP', gupnp_igd_dep.found(), description: 'Use the GUPnP IGD library')
 
 libm = cc.find_library('m', required: false)
 
@@ -229,7 +215,7 @@ subdir('socket')
 subdir('random')
 subdir('nice')
 
-if using_gst
+if gst_dep.found()
   subdir('gst')
 endif
 
