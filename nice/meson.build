@@ -45,7 +45,7 @@ pkgconf.set('exec_prefix', '${prefix}')
 pkgconf.set('libdir', '${prefix}/@0@'.format(get_option('libdir')))
 pkgconf.set('includedir', '${prefix}/@0@'.format(get_option('includedir')))
 pkgconf.set('VERSION', meson.project_version())
-pkgconf.set('UPNP_ENABLED', using_gupnp ? 'true' : 'false')
+pkgconf.set('UPNP_ENABLED', gupnp_igd_dep.found() ? 'true' : 'false')
 
 # Requires
 pkgconf.set('NICE_PACKAGES_PUBLIC', 'glib-2.0 >= @0@ gio-2.0 >= @0@ gobject-2.0 >= @0@'.format(glib_req))
@@ -53,7 +53,7 @@ pkgconf.set('GUPNP_PACKAGES_PUBLIC', '')
 
 # Requires.private
 pkgconf.set('NICE_PACKAGES_PRIVATE', 'gthread-2.0 gnutls >= @0@'.format(gnutls_req))
-pkgconf.set('GUPNP_PACKAGES_PRIVATE', using_gupnp ? 'gupnp-igd-1.0 >= @0@'.format(gupnp_igd_req) : '')
+pkgconf.set('GUPNP_PACKAGES_PRIVATE', gupnp_igd_dep.found() ? 'gupnp-igd-1.0 >= @0@'.format(gupnp_igd_req) : '')
 
 pkg_install_dir = join_paths(get_option('libdir'), 'pkgconfig')
 

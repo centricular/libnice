@@ -50,8 +50,8 @@ foreach tname : nice_tests
   test(tname, exe, env: tenv)
 endforeach
 
-if using_gst
-  gst_check = dependency('gstreamer-check-1.0', required: false,
+if gst_dep.found()
+  gst_check = dependency('gstreamer-check-1.0', required: get_option('gstreamer'),
                          fallback : ['gstreamer', 'gst_check_dep'])
   if gst_check.found()
     exe = executable('nice-test-gstreamer',
