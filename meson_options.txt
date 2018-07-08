@@ -8,3 +8,5 @@ option('tests', type: 'boolean', value: true,
   description: 'Enable or disable unit tests')
 option('gtk_doc', type: 'boolean', value: false,
   description: 'Build gtk-doc documentation')
+option('introspection', type: 'boolean', value: true,
+  description : 'Build introspection data (requires gobject-introspection)')
