@@ -1,3 +1,5 @@
+nice_gen_sources = []
+
 libnice = library('nice',
   link_whole: [libagent, libsocket, libstun, librandom],
   version : libversion,
@@ -7,8 +9,27 @@ libnice = library('nice',
 install_headers('nice.h', subdir: 'nice')
 nice_include = include_directories('.')
 
+# introspection
+build_gir = get_option('introspection') and get_option('default_library') != 'static'
+if build_gir
+  nice_gen_sources += [
+    gnome.generate_gir(libnice,
+      sources : [agent_headers, agent_sources],
+      namespace : 'Nice',
+      nsversion : '0.1',
+      identifier_prefix : 'Nice',
+      symbol_prefix: 'nice',
+      export_packages: 'nice',
+      includes: ['GObject-2.0', 'Gio-2.0'],
+      extra_args: ['--accept-unprefixed'],
+      install: true)
+  ]
+endif
+
 libnice_dep = declare_dependency(link_with : libnice,
-  include_directories : [agent_include, nice_include])
+  include_directories : [agent_include, nice_include],
+  # Everything that uses libnice needs this built to compile
+  sources : nice_gen_sources)
 
 # TODO: symbol script
 am='''
