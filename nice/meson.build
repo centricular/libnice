@@ -10,7 +10,7 @@ install_headers('nice.h', subdir: 'nice')
 nice_include = include_directories('.')
 
 # introspection
-build_gir = get_option('introspection') and get_option('default_library') != 'static'
+build_gir = not get_option('introspection').disabled() and get_option('default_library') != 'static'
 if build_gir
   nice_gen_sources += [
     gnome.generate_gir(libnice,

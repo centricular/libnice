@@ -34,6 +34,6 @@ libstun = static_library('stun', stun_sources,
 
 subdir('tools')
 
-if get_option('tests')
+if not get_option('tests').disabled()
   subdir('tests')
 endif
