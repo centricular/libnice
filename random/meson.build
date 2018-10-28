@@ -5,7 +5,7 @@ librandom = static_library('nice-random',
   dependencies: [glib_dep, gthread_dep],
   install: false)
 
-if get_option('tests')
+if not get_option('tests').disabled()
   test_exe = executable('nice-random-test', 'test.c',
     include_directories: nice_incs,
     dependencies: [glib_dep, gthread_dep],

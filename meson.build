@@ -219,11 +219,11 @@ if gst_dep.found()
   subdir('gst')
 endif
 
-if get_option('gtk_doc')
+if not get_option('gtk_doc').disabled()
   subdir('docs/reference/libnice')
 endif
 
-if get_option('tests')
+if not get_option('tests').disabled()
   subdir('tests')
 endif
 #subdir('examples')
