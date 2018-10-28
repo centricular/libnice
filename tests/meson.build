@@ -44,7 +44,7 @@ foreach tname : nice_tests
     c_args: '-DG_LOG_DOMAIN="libnice-tests"',
     include_directories: nice_incs,
     dependencies: [nice_deps, libm],
-    link_with: libnice,
+    link_with: [libagent, libstun, libsocket, librandom],
     install: false)
   set_variable(tname.underscorify(), exe)
   test(tname, exe, env: tenv)
