@@ -1,9 +1,31 @@
 nice_gen_sources = []
+nice_link_args = []
+
+# libnice.def
+libnice_def = custom_target('libnice.def',
+    command: [find_program('gen-def.py'), '@INPUT@'],
+    input: 'libnice.sym',
+    output: 'libnice.def',
+    capture: true)
+
+# map file
+mapfile = custom_target('libnice.map',
+    command: [find_program('gen-map.py'), '@INPUT@'],
+    input: 'libnice.sym',
+    output: 'libnice.map',
+    capture: true)
+# We need to check with a file that exists at configure time!
+if cc.has_link_argument('-Wl,--version-script,@0@/libnice.ver'.format(meson.current_source_dir()))
+  nice_link_args += ['-Wl,--version-script,@0@'.format(mapfile.full_path())]
+endif
 
 libnice = library('nice',
   link_whole: [libagent, libsocket, libstun, librandom],
   version : libversion,
   soversion : soversion,
+  vs_module_defs: libnice_def,
+  link_args: nice_link_args,
+  link_depends: mapfile,
   install: true)
 
 install_headers('nice.h', subdir: 'nice')
@@ -30,34 +52,6 @@ libnice_dep = declare_dependency(link_with : libnice,
   include_directories : [agent_include, nice_include],
   # Everything that uses libnice needs this built to compile
   sources : nice_gen_sources)
-
-# TODO: symbol script
-am='''
-libnice_la_LDFLAGS = \
-	-export-symbols $(srcdir)/libnice.sym \
-	$(LIBNICE_LT_LDFLAGS)
-
-test-symbols.sh::
-	chmod +x $(srcdir)/$@
-
-libnice-symbols-test.c: libnice.sym
-	rm -f $@
-	while read s; do echo "void $$s(void) { }" ; done < $? > $@
-
-libnice-symbols-test.o: libnice-symbols-test.c
-	$(CC) $(CFLAGS) -c -o $@ $?
-
-libnice.symbols: libnice-symbols-test.o
-	rm -f $@
-	$(top_srcdir)/scripts/make-symbol-list.sh $? > $@
-
-check_SCRIPTS = test-symbols.sh
-check_DATA = libnice.symbols
-
-TESTS = $(check_SCRIPTS)
-
-EXTRA_DIST = $(check_SCRIPTS) libnice.sym libnice.ver
-'''
 
 # pkg-config file
 pkg = import('pkgconfig')
