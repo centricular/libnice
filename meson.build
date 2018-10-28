@@ -226,6 +226,9 @@ endif
 if not get_option('tests').disabled()
   subdir('tests')
 endif
-#subdir('examples')
+
+if not get_option('examples').disabled()
+  subdir('examples')
+endif
 
 configure_file(output : 'config.h', configuration : cdata)
