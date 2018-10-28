@@ -83,18 +83,6 @@ cdata.set_quoted('VERSION', meson.project_version())
 cdata.set('NICEAPI_EXPORT', true,
   description: 'Public library function implementation')
 
-# TODO:
-cfga='''
-# Checks for compiler features
-
-AH_VERBATIM([_FORTIFY_SOURCE],
-[/* Define to `2' to get GNU/libc warnings. */
-/* Only define if -O1 or more is enabled */
-#if defined __OPTIMIZE__ && __OPTIMIZE__ > 0
-# define _FORTIFY_SOURCE 2
-#endif])
-'''
-
 # headers
 foreach h : ['arpa/inet.h', 'net/in.h', 'netdb.h', 'ifaddrs.h']
   if cc.has_header(h)
@@ -199,11 +187,6 @@ nice_incs = include_directories('.', 'agent', 'random', 'socket', 'stun')
 
 nice_deps = [glib_dep, gthread_dep, gnutls_dep, gupnp_igd_dep] + syslibs
 
-# TODO: configure.ac bits that are yet to be ported
-todo='''
-# GObject introspection
-GOBJECT_INTROSPECTION_CHECK([1.30.0])
-'''
 ignored_iface_prefix = get_option('ignored-network-interface-prefix')
 if ignored_iface_prefix != ''
   cdata.set_quoted('IGNORED_IFACE_PREFIX', ignored_iface_prefix)
