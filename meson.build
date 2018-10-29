@@ -171,9 +171,9 @@ glib_dep = dependency('gio-2.0', version: glib_req)
 gthread_dep = dependency('gthread-2.0')
 
 # GStreamer
+gst_option = get_option('gstreamer')
 gst_dep = dependency('gstreamer-base-1.0', version: gst_req,
-  required: get_option('gstreamer'),
-  fallback : ['gstreamer', 'gst_base_dep'])
+  required: gst_option, fallback : ['gstreamer', 'gst_base_dep'])
 
 cdata.set('HAVE_GSTREAMER', gst_dep.found(), description: 'Build GStreamer plugin')
 
@@ -206,7 +206,8 @@ if not get_option('gtk_doc').disabled()
   subdir('docs/reference/libnice')
 endif
 
-if not get_option('tests').disabled()
+tests_option = get_option('tests')
+if not tests_option.disabled()
   subdir('tests')
 endif
 

@@ -51,9 +51,13 @@ foreach tname : nice_tests
 endforeach
 
 if gst_dep.found()
-  gst_check = dependency('gstreamer-check-1.0', required: get_option('gstreamer'),
+  gst_check = dependency('gstreamer-check-1.0', required: false,
                          fallback : ['gstreamer', 'gst_check_dep'])
-  if gst_check.found()
+  if not gst_check.found()
+    if tests_option.enabled() and gst_option.enabled()
+      error('tests and gstreamer options enabled but gstreamer-check-1.0 not found')
+    endif
+  else
     exe = executable('nice-test-gstreamer',
       'test-gstreamer.c', extra_src,
       c_args: '-DG_LOG_DOMAIN="libnice-tests"',
