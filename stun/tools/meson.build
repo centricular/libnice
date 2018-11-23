@@ -3,8 +3,11 @@ stund_exe = executable('stund', 'stund.c',
   link_with: libstun,
   install: true)
 
-stunbdc_exe = executable('stunbdc', 'stunbdc.c',
-  include_directories: nice_incs,
-  dependencies: syslibs,
-  link_with: libstun,
-  install: true)
+# Uses getopt.h which is not implemented on MSVC
+if host_machine.system() != 'windows' and cc.get_id() != 'msvc'
+  stunbdc_exe = executable('stunbdc', 'stunbdc.c',
+    include_directories: nice_incs,
+    dependencies: syslibs,
+    link_with: libstun,
+    install: true)
+endif
