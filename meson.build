@@ -217,7 +217,7 @@ libm = cc.find_library('m', required: false)
 
 nice_incs = include_directories('.', 'agent', 'random', 'socket', 'stun')
 
-nice_deps = [glib_dep, gobject_dep, gio_dep gthread_dep, crypto_dep, gupnp_igd_dep] + syslibs
+nice_deps = [glib_dep, gobject_dep, gio_dep, gthread_dep, crypto_dep, gupnp_igd_dep] + syslibs
 
 ignored_iface_prefix = get_option('ignored-network-interface-prefix')
 if ignored_iface_prefix != ''
